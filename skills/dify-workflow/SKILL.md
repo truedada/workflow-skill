@@ -45,7 +45,8 @@ Once requirements are clear, proceed to generation.
 | HTTP Request | `http-request` | Makes HTTP API calls | `method`, `url`, `headers`, `body`, `authorization` | `references/nodes/http-request.md` |
 | If/Else | `if-else` | Conditional branching (IF/ELIF/ELSE) | `cases` | `references/nodes/if-else.md` |
 | Variable Aggregator | `variable-aggregator` | Merges variables from multiple branches | `output_type`, `variables` | `references/nodes/variable-aggregator.md` |
-| Iteration | `iteration` | Loops over array, runs sub-graph per element | `iterator_selector`, `output_selector`, `start_node_id` | `references/nodes/iteration.md` |
+| Iteration | `iteration` | Loops over array, runs sub-graph per element | `iterator_selector`, `iterator_input_type`, `output_selector`, `start_node_id` | `references/nodes/iteration.md` |
+| Document Extractor | `document-extractor` | Extracts text from uploaded files (PDF/DOCX/etc.) | `variable_selector`, `is_array_file` | `references/nodes/document-extractor.md` |
 | Template Transform | `template-transform` | Renders Jinja2 templates with variables | `template`, `variables` | `references/nodes/template-transform.md` |
 | Question Classifier | `question-classifier` | Routes by classifying input into categories via LLM | `query_variable_selector`, `model`, `classes` | `references/nodes/question-classifier.md` |
 | Parameter Extractor | `parameter-extractor` | Extracts structured params from text via LLM | `query`, `model`, `parameters`, `reasoning_mode` | `references/nodes/parameter-extractor.md` |
@@ -136,8 +137,40 @@ For the complete field-level specification, see `references/dsl-format.md`.
 - **Node IDs**: 13-digit timestamp strings (e.g., `"1711536487001"`). Increment by a few thousand between nodes to simulate realistic IDs.
 - **Coordinates**: Start at `{x: 80, y: 282}`. Each subsequent column at `+300` on x-axis. Parallel branches offset on y-axis by `+200`.
 - **Variable references**: Use `{{#nodeId.variableName#}}` syntax. System variables use `sys` prefix: `{{#sys.query#}}`, `{{#sys.user_id#}}`.
-- **Model provider format**: `"langgenius/<provider>/<provider>"` (e.g., `"langgenius/openai/openai"`)
+- **Model provider format**: `"langgenius/<provider>/<provider>"` (e.g., `"langgenius/openai/openai"`). Use a real, currently-shipping model name for `model.name` (e.g. `deepseek-chat`, `gpt-4o-mini`); fictional names like `deepseek-v4-pro` will fail provider validation.
 - **All string node IDs** must be quoted in YAML to prevent type coercion.
+
+## Common Schema Pitfalls (must avoid)
+
+These are the schema mistakes most likely to make a generated DSL fail import in Dify 0.6.0:
+
+1. **Variable shape differs per node type.** The shape of a single entry inside a node's variable list is **not** the same across nodes:
+   - `code`, `llm`, `template-transform`, `parameter-extractor` use **objects**:
+     ```yaml
+     variables:
+       - variable: my_arg
+         value_selector: ["upstream_id", "field"]
+         value_type: string
+     ```
+   - `variable-aggregator` uses **bare nested lists** (no `value_selector:` wrapper, no `variable:` name):
+     ```yaml
+     variables:
+       - - "branch1_id"
+         - "output"
+       - - "branch2_id"
+         - "output"
+     ```
+   - `document-extractor` uses a singular `variable_selector` (a flat array of strings), not a list:
+     ```yaml
+     variable_selector: ["upstream_id", "field"]
+     ```
+2. **`memory` belongs only to chatflow LLM nodes.** In `workflow`-mode apps, `sys.query` does not exist; LLM nodes must omit the `memory` block. Same applies for LLM nodes placed inside an iteration in a workflow app.
+3. **Iteration containers need dimensions in both places.** Set `width` and `height` both inside `data` and at the outer node level. Iteration-start child uses outer `type: custom-iteration-start` with `data.type: iteration-start`.
+4. **Iteration child nodes** must declare `parentId: <iteration_id>`, `data.isInIteration: true`, `data.iteration_id: <iteration_id>`, and `zIndex: 1002`. Their `position` is relative to the iteration container (e.g. start near `{x: 24, y: 68}`).
+5. **`iterator_input_type` must match the real element type.** For files: `"array[file]"`. For numbers: `"array[number]"`. Mismatch breaks runtime variable resolution.
+6. **Plugin dependencies.** If you reference a model provider (e.g. `langgenius/deepseek/deepseek`) or a tool provider not bundled with Dify, declare it in top-level `dependencies` so import flags missing plugins clearly. Empty `dependencies: []` is fine when the deployment is known to have those plugins installed.
+7. **End node `outputs` is a list of `{variable, value_selector, value_type}` items**; Code node `outputs` is a dict keyed by variable name with `{type, children}` values. Do not mix the two shapes.
+8. **Edge `data` block** should include `sourceType`, `targetType`, `isInIteration`, `isInLoop`. Edges inside iteration also need `iteration_id` and `zIndex: 1002`.
 
 ## Template Matching
 

@@ -59,6 +59,9 @@ Skill 生成 Python 脚本调用已验证的模板函数，产出字节级兼容
 
 生成 `.dify.yml` / `.dify.json` 文件，通过 [Dify](https://dify.ai) 的「导入 DSL」功能导入。
 
+> **对齐的 Dify 版本**：`dify-api 1.13.3` · DSL `0.6.0` · 源码快照 commit [`eca0cdc`](https://github.com/langgenius/dify)（2026-04-04）。
+> `skills/dify-workflow/` 的 schema 规则与节点参考最后基于此快照校对——更新 `source/dify/` 后请同步检查节点 entity 是否有 schema 变更，并升级此版本号。
+
 ### 使用
 
 ```
@@ -158,7 +161,12 @@ Workflow-<NAME>-draft-<DIGITS>/
 
 ### Dify DSL 格式
 
-标准 Dify YAML DSL，`version: "0.6.0"`，13 位时间戳节点 ID，`{{#nodeId.variableName#}}` 变量引用。
+标准 Dify YAML DSL，`version: "0.6.0"`，13 位时间戳节点 ID，`{{#nodeId.variableName#}}` 变量引用。已基于 dify-api **1.13.3**（commit `eca0cdc`，2026-04-04）校对。Dify 升级时请重新检查：
+
+- `api/services/app_dsl_service.py` → `CURRENT_DSL_VERSION`
+- `api/services/workflow_service.py` → `validate_graph_structure` / `validate_features_structure`
+- `api/tests/fixtures/workflow/*.yml` 作为节点/边的权威示例
+- `graphon.nodes.*` 节点 entity 模型（外部包，版本锁定在 `api/pyproject.toml`）
 
 ### ComfyUI Litegraph 格式
 

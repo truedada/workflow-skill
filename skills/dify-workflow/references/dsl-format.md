@@ -593,22 +593,22 @@ The iteration-start node:
 
 ### Variable Aggregator Node
 
-Used to merge outputs from parallel branches:
+Used to merge outputs from parallel branches. `variables` is a list of bare nested arrays (each inner array is `[node_id, variable_name]`) — **not** a list of `{value_selector: ...}` objects. This is different from the variable shape used by Code / LLM / Template Transform nodes:
 
 ```yaml
 data:
   type: variable-aggregator
   title: Variable Aggregator
   desc: ""
+  output_type: "string"          # Must match the type of every aggregated variable.
   variables:
-    - value_selector:
-        - "branch1_node"
-        - "result"
-    - value_selector:
-        - "branch2_node"
-        - "result"
-  output_type: "string"
+    - - "branch1_node"
+      - "result"
+    - - "branch2_node"
+      - "result"
 ```
+
+For grouped aggregation (multiple outputs from one node), set `advanced_settings.group_enabled: true` and supply `advanced_settings.groups[]`. See `references/nodes/variable-aggregator.md` for the full schema.
 
 ---
 

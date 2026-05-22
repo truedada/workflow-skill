@@ -47,6 +47,19 @@ Standard `CommonNodeType` fields (`title`, `desc`, `type`) plus:
 | `"continue-on-error"` | Skip the failed element and continue with remaining. |
 | `"remove-abnormal-output"` | Continue but exclude failed elements from output. |
 
+### Supported `iterator_input_type` values
+
+Match the actual type of the array being iterated:
+
+| Value | Iterated element type |
+|-------|-----------------------|
+| `"array[string]"` | `string` |
+| `"array[number]"` | `number` |
+| `"array[object]"` | `object` |
+| `"array[file]"` | `file` (each `item` is a single `File`) |
+
+When iterating `array[file]`, place a `document-extractor` (with `is_array_file: false`) as the first inner node and point its `variable_selector` at `[iteration_node_id, "item"]`.
+
 ## Sub-Graph Structure
 
 An iteration node contains child nodes as a sub-graph. The structure:
@@ -80,6 +93,30 @@ Edges between inner nodes have:
 - **Index variable**: Inner nodes can access the current iteration index via `[iteration_node_id, "index"]`.
 - **Output**: The `output_selector` points to an inner node's output variable. The iteration collects these into an array. The final output is available as `[iteration_node_id, "output"]`.
 - **Output type**: Wraps the per-element type in an array. If inner code returns `array[number]` and `flatten_output` is true, the iteration output type is `array[number]` (flattened). If false, it would be `array[array[number]]`.
+
+## Required layout fields on the iteration node
+
+Unlike other nodes, the iteration container persists its dimensions in **two** places — both inside `data` and as siblings of `data`. Omitting either side has been observed to break import:
+
+```yaml
+- id: "iter_1"
+  type: custom
+  position: { x: 380, y: 200 }
+  width: 900          # outer (ReactFlow node)
+  height: 280         # outer
+  zIndex: 1
+  sourcePosition: right
+  targetPosition: left
+  data:
+    type: iteration
+    title: "..."
+    desc: ""
+    # ...other iteration fields...
+    width: 900        # also inside data
+    height: 280       # also inside data
+```
+
+The `iteration-start` child node uses `type: custom-iteration-start` at the outer level (not `custom`), with `data.type: iteration-start`.
 
 ## Example Snippet
 

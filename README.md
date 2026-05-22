@@ -59,6 +59,9 @@ The skill generates a Python script using verified template functions, then runs
 
 Generate `.dify.yml` / `.dify.json` files for import into [Dify](https://dify.ai) via UI "Import DSL".
 
+> **Tracked Dify version**: `dify-api 1.13.3` · DSL `0.6.0` · source pinned at commit [`eca0cdc`](https://github.com/langgenius/dify) (2026-04-04).
+> Schema rules and node references in `skills/dify-workflow/` were last verified against this snapshot — bump it after pulling a newer `source/dify/` and re-checking the node entity changes.
+
 ### Usage
 
 ```
@@ -158,7 +161,12 @@ Workflow-<NAME>-draft-<DIGITS>/
 
 ### Dify DSL Format
 
-Standard Dify YAML DSL with `version: "0.6.0"`, node IDs as 13-digit timestamps, `{{#nodeId.variableName#}}` variable references.
+Standard Dify YAML DSL with `version: "0.6.0"`, node IDs as 13-digit timestamps, `{{#nodeId.variableName#}}` variable references. Verified against dify-api **1.13.3** (commit `eca0cdc`, 2026-04-04). When upgrading dify, re-check:
+
+- `api/services/app_dsl_service.py` → `CURRENT_DSL_VERSION`
+- `api/services/workflow_service.py` → `validate_graph_structure` / `validate_features_structure`
+- `api/tests/fixtures/workflow/*.yml` for canonical node/edge shapes
+- `graphon.nodes.*` entity models (external package, pinned via `api/pyproject.toml`)
 
 ### ComfyUI Litegraph Format
 
